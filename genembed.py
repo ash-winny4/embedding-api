@@ -1,8 +1,8 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from fastembed import TextEmbedding
-from typing import Any, Optional, List
+from typing import Any, Optional, List, Dict
 
 app = FastAPI()
 
@@ -58,19 +58,14 @@ def embed(body: EmbedRequest):
     }
 
 @app.post("/embed/object")
-async def embed_object(request: Request):
+def embed_object(body: Dict[str, Any]):
     """Accepts both {data: {...}} and raw {...}"""
-    body = await request.json()
-
-    # handle both formats
     if "data" in body and isinstance(body["data"], dict):
         data = body["data"]
         fields = body.get("fields", None)
     else:
+        fields = body.pop("fields", None)
         data = body
-        fields = body.get("fields", None)
-        # remove fields key from data if present
-        data = {k: v for k, v in data.items() if k != "fields"}
 
     text = object_to_text(data, fields)
     vector = embed_text(text)
