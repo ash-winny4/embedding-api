@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from fastembed import TextEmbedding
@@ -18,10 +18,6 @@ model = TextEmbedding("BAAI/bge-small-en-v1.5")
 
 class EmbedRequest(BaseModel):
     text: str
-
-class EmbedObjectRequest(BaseModel):
-    data: dict[str, Any]
-    fields: Optional[List[str]] = None
 
 class EmbedBatchRequest(BaseModel):
     texts: List[str]
@@ -62,8 +58,21 @@ def embed(body: EmbedRequest):
     }
 
 @app.post("/embed/object")
-def embed_object(body: EmbedObjectRequest):
-    text = object_to_text(body.data, body.fields)
+async def embed_object(request: Request):
+    """Accepts both {data: {...}} and raw {...}"""
+    body = await request.json()
+
+    # handle both formats
+    if "data" in body and isinstance(body["data"], dict):
+        data = body["data"]
+        fields = body.get("fields", None)
+    else:
+        data = body
+        fields = body.get("fields", None)
+        # remove fields key from data if present
+        data = {k: v for k, v in data.items() if k != "fields"}
+
+    text = object_to_text(data, fields)
     vector = embed_text(text)
     return {
         "text": text,
