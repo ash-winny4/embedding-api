@@ -61,9 +61,11 @@ def embed(body: EmbedRequest):
 def embed_object(body: Dict[str, Any]):
     """Accepts both {data: {...}} and raw {...}"""
     if "data" in body and isinstance(body["data"], dict):
+        # wrapped format: { "data": {...}, "fields": [...] }
         data = body["data"]
         fields = body.get("fields", None)
     else:
+        # raw format: { "key": "value", ... }
         fields = body.pop("fields", None)
         data = body
 
